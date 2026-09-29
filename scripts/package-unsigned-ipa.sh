@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 APP="${PAPERPAD_IOS_DEVICE_APP:-$ROOT/build-ios-device/Release/PaperPad.app}"
-OUTPUT="${PAPERPAD_UNSIGNED_IPA_OUTPUT:-$ROOT/artifacts/PaperPad-v0.1.0-preview.2-unsigned.ipa}"
+version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$ROOT/version.json")"
+OUTPUT="${PAPERPAD_UNSIGNED_IPA_OUTPUT:-$ROOT/artifacts/PaperPad-v$version-ios-personal-unsigned.ipa}"
 
 [[ "$APP" = /* ]] || APP="$ROOT/$APP"
 [[ "$OUTPUT" = /* ]] || OUTPUT="$ROOT/$OUTPUT"
