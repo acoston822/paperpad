@@ -3,7 +3,7 @@ Built on Harbour Masters PaperBoat, its Paper Mario decompilation/DX work,
 JeodC's libultraship and Torch integration, and their upstream contributors.
 PaperBoat: https://github.com/HarbourMasters/PaperBoat (CC0 source notice).
 libultraship: https://github.com/JeodC/libultraship (MIT; nested terms retained).
-Torch: https://github.com/JeodC/Torch-LH (MIT; nested terms retained).
+Torch: https://github.com/JeodC/Torch (MIT; nested terms retained).
 SDL2, Fast3D/Prism, ImGui, Metal-cpp, libzip, compression libraries, fonts and
 other linked components retain their own licenses. Exact notices are collected
 in Licenses/ and selected source identities in BUILD_PROVENANCE.json.
