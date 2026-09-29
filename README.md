@@ -40,7 +40,7 @@ This repository contains integration source, pinned maintained dependencies, scr
 
 ## Project status
 
-PaperPad Original `v0.1.0-preview.2` is the retained earlier iPhone and iPad preview. The release provides a ROM-free, unsigned IPA that users sign with their own Apple credentials. There is no TestFlight, App Store release, signed download, or notarized macOS build.
+PaperPad 0.2.0 is released as a PadForge recipe: you build the app from your own ROM (see [Get PaperPad](#get-paperpad)). Earlier preview downloads are retired. There is no TestFlight, App Store release, signed download, or notarized macOS build.
 
 | Target | Current status |
 |---|---|
@@ -54,16 +54,19 @@ Preview 2 adds targeted SDL2 controller-slot reconciliation for missed disconnec
 
 See [Current status](docs/STATUS.md), [Technical debt](docs/TECH-DEBT.md), and the [Release checklist](docs/RELEASE_CHECKLIST.md) for dated evidence and the remaining gates.
 
-## Download Preview 2
+## Get PaperPad
 
-Previous builds have been retired; a new version is in progress.
+Releases publish no app: PaperPad is compiled from Paper Mario's decompilation and your own ROM, so
+you make the app yourself on an Apple silicon Mac with Xcode. Download
+[PadForge](https://github.com/chrissotraidis/padforge/releases/latest), unzip it, double-click
+`PadForge.command`, choose PaperPad and drag in your own Paper Mario (USA) 1.0 ROM. PadForge builds
+the app from this repository's [latest release](https://github.com/chrissotraidis/paperpad/releases/latest)
+and saves an unsigned IPA in the folder you choose; install it with AltStore Classic, SideStore or
+Sideloadly (see the [unsigned IPA installation guide](docs/INSTALL_IPA.md)). Install over an existing
+PaperPad to keep your saves, and on first launch choose the same ROM in Files. The IPA contains code
+made from your ROM: keep it to yourself.
 
 - iPhone or iPad with iOS/iPadOS 15 or newer
-- arm64, ROM-free, and unsigned; sign it with your own Apple credentials
-- SHA-256: `ea908c33fce6ba883acadff3ccc3025a1a7ef0284947c09cf98f3602af84d029`
-- Paper Mario (US) 1.0 must be supplied and imported by the user
-
-Follow the [unsigned IPA installation guide](docs/INSTALL_IPA.md). Preview 2 is not an App Store or TestFlight build; uninstalling can remove the private ROM, saves, and settings stored by your signed copy.
 
 ## Get started
 

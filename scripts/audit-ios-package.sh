@@ -55,8 +55,11 @@ plist_value() {
     /usr/libexec/PlistBuddy -c "Print :$1" "$app/Info.plist"
 }
 [[ "$(plist_value CFBundleIdentifier)" = com.chrissotraidis.paperpad ]] || fail "unexpected bundle identifier"
-[[ "$(plist_value CFBundleShortVersionString)" = 0.1.0 ]] || fail "unexpected app version"
-[[ "$(plist_value CFBundleVersion)" = 2 ]] || fail "unexpected app build number"
+version_field() {
+    python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$(dirname -- "$0")/../version.json" "$1"
+}
+[[ "$(plist_value CFBundleShortVersionString)" = "$(version_field version)" ]] || fail "unexpected app version"
+[[ "$(plist_value CFBundleVersion)" = "$(version_field build)" ]] || fail "unexpected app build number"
 [[ "$(plist_value MinimumOSVersion)" = 15.0 ]] || fail "unexpected Info.plist minimum OS"
 [[ "$(plist_value ITSAppUsesNonExemptEncryption)" = false ]] || fail "encryption declaration is not false"
 

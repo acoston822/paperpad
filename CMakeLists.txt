@@ -4,8 +4,10 @@ project(PaperPad LANGUAGES C CXX)
 
 include(CTest)
 
-set(PAPERPAD_VERSION "0.1.0")
-set(PAPERPAD_BUILD_NUMBER "2")
+# One version file for the app, its packages and PadForge.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.json" PAPERPAD_VERSION_JSON)
+string(JSON PAPERPAD_VERSION GET "${PAPERPAD_VERSION_JSON}" version)
+string(JSON PAPERPAD_BUILD_NUMBER GET "${PAPERPAD_VERSION_JSON}" build)
 set(PAPERPAD_BUILD_PROFILE "release")
 
 if (APPLE)
