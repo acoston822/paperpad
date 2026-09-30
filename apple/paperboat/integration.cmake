@@ -11,7 +11,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 set_source_files_properties("${PAPERPAD_APP_ROOT}/apple/app/ios_main.mm" PROPERTIES COMPILE_OPTIONS "-fno-objc-arc")
 target_include_directories(${PROJECT_NAME} PRIVATE "${PAPERPAD_APP_ROOT}/src" "${PAPERPAD_APP_ROOT}/apple/app")
 set(EXECUTABLE_NAME Paperboat)
-# One version file (version.json) for PaperPad, PaperPad Original and PadForge.
+# One version file (version.json) for PaperPad, PaperPad Original and PadMint.
 file(READ "${PAPERPAD_APP_ROOT}/version.json" PAPERPAD_VERSION_JSON)
 string(JSON PAPERPAD_VERSION GET "${PAPERPAD_VERSION_JSON}" version)
 string(JSON PAPERPAD_BUILD_NUMBER GET "${PAPERPAD_VERSION_JSON}" build)

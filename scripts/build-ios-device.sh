@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build an unsigned, ROM-free PaperPad.app for iPhone and iPad (arm64).
-# PadForge runs this with the player's own ROM, then package-unsigned-ipa.sh.
+# PadMint runs this with the player's own ROM, then package-unsigned-ipa.sh.
 set -euo pipefail
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 source "$script_dir/lib/common.sh"

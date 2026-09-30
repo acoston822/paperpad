@@ -4,7 +4,7 @@ project(PaperPad LANGUAGES C CXX)
 
 include(CTest)
 
-# One version file for the app, its packages and PadForge.
+# One version file for the app, its packages and PadMint.
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.json" PAPERPAD_VERSION_JSON)
 string(JSON PAPERPAD_VERSION GET "${PAPERPAD_VERSION_JSON}" version)
 string(JSON PAPERPAD_BUILD_NUMBER GET "${PAPERPAD_VERSION_JSON}" build)
