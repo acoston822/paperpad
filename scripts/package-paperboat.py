@@ -38,7 +38,8 @@ with tempfile.TemporaryDirectory(prefix='paperpad-boat-package-') as tmp:
         shutil.copyfile(source,dest)
     info=plistlib.loads((app/'Info.plist').read_bytes())
     assert info['CFBundleIdentifier']=='com.chrissotraidis.paperpad.boat'
-    assert info['CFBundleShortVersionString']=='0.2.0' and info['CFBundleVersion']=='7'
+    wanted=json.loads((root/'version.json').read_text())
+    assert info['CFBundleShortVersionString']==wanted['version'] and info['CFBundleVersion']==str(wanted['build'])
     assert info['CFBundleDisplayName']=='PaperPad' and info['CFBundleName']=='PaperPad'
     assert info['MinimumOSVersion']=='16.3'
     assert info.get('UIDeviceFamily')==[1,2], 'Boat must declare native iPhone and iPad support'

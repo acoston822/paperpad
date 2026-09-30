@@ -2,7 +2,7 @@
   "schema_version": 1,
   "id": "paperpad",
   "name": "PaperPad",
-  "game": "Paper Mario (N64, US 1.0) via static recompilation",
+  "game": "Paper Mario (N64, US 1.0) via Harbour Masters' PaperBoat",
   "kind": "disc-translation",
   "status": "draft-untested",
   "inputs": [
@@ -13,8 +13,8 @@
         "v64",
         "n64"
       ],
-      "when": "build",
-      "description": "Your own Paper Mario (USA) 1.0 ROM (SHA-1 3837f44cda784b466c9a2d99df70d77c322b97a0 once normalized), prepared and translated privately during the build."
+      "when": "in-app",
+      "description": "Your own unmodified Paper Mario (USA) 1.0 ROM, chosen in the app after installation; the app extracts it privately. The build does not read it."
     }
   ],
   "targets": {
@@ -34,17 +34,16 @@
         {
           "stage": "build",
           "command": [
-            "{repo}/scripts/build-ios-device.sh",
-            "--rom",
-            "{disc}"
+            "{repo}/scripts/build-paperboat.sh",
+            "device"
           ]
         },
         {
           "stage": "package",
           "command": [
-            "/usr/bin/env",
-            "PAPERPAD_UNSIGNED_IPA_OUTPUT={output}",
-            "{repo}/scripts/package-unsigned-ipa.sh"
+            "python3",
+            "{repo}/scripts/package-paperboat.py",
+            "{output}"
           ]
         }
       ]
@@ -56,7 +55,7 @@
     }
   },
   "requirements": {
-    "disk_gb": 25,
+    "disk_gb": 15,
     "tools": [
       {
         "name": "git",
@@ -83,25 +82,6 @@
         ]
       },
       {
-        "name": "jq",
-        "version_args": [
-          "--version"
-        ]
-      },
-      {
-        "name": "make",
-        "version_args": [
-          "--version"
-        ]
-      },
-      {
-        "name": "brew",
-        "version_args": [
-          "--version"
-        ],
-        "note": "Homebrew: the build installs GCC and Python 3.11 for the decompilation tools"
-      },
-      {
         "name": "xcodebuild",
         "version_args": [
           "-version"
@@ -110,9 +90,9 @@
       }
     ]
   },
-  "notes": "build-ios-device.sh runs the documented chain (sources, ROM preparation, decompilation, N64Recomp generation, RT64 host tools, unsigned device app); package-unsigned-ipa.sh adds licenses and provenance.",
+  "notes": "Builds PaperPad (PaperBoat engine, bundle com.chrissotraidis.paperpad.boat, iOS 16.3+). PaperPad Original (ReCut) stays buildable by hand with scripts/build-ios-device.sh --rom; it has separate saves.",
   "publication": {
     "public_binaries": false,
-    "reason": "Personal builds contain game code translated from the player's ROM; public releases are source only."
+    "reason": "Recipe only: the app is compiled from the Paper Mario decompilation, so each player builds their own."
   }
 }
