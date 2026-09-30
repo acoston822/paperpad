@@ -3,8 +3,6 @@
 
 PaperPad 0.2.0 uses [Harbour Masters’ PaperBoat](https://github.com/HarbourMasters/PaperBoat), with PaperPad's native Apple touch controls, settings, ROM import and diagnostics. The app and download are named **PaperPad**.
 
-Previous builds have been retired; a new version is in progress.
-
 - iPhone/iPad, iOS/iPadOS **16.3 or newer**; unsigned IPA for signing with your own credentials.
 - Supply an unmodified **Paper Mario (US) 1.0** ROM locally. No ROM or extracted game archive is included.
 - Floating touch-down stick, compact native settings, controller support, Auto/1×–4× rendering and shared diagnostics.
@@ -12,6 +10,18 @@ Previous builds have been retired; a new version is in progress.
 - Title-menu animation stutter remains a known issue. See the release notes for test scope and limitations.
 
 The release includes exact nested sources, notices, build provenance and checksums. [Source updates and offline archive builds](docs/PAPERBOAT_DEVELOPMENT.md#version-020-source-delivery) and [rights limitations](RIGHTS_AND_LICENSES.md) are documented. Report app/platform issues here with the build and diagnostic log; do not assume upstream owns an Apple-port issue.
+
+## Get PaperPad
+
+Releases publish no app: PaperPad is compiled from the Paper Mario decompilation, so you make your
+own on an Apple silicon Mac with Xcode. Download
+[PadForge](https://github.com/chrissotraidis/padforge/releases/latest), unzip it, double-click
+`PadForge.command` and choose PaperPad. PadForge builds the app from this repository's
+[latest release](https://github.com/chrissotraidis/paperpad/releases/latest) and saves an unsigned
+IPA in the folder you choose; install it with AltStore Classic, SideStore or Sideloadly (see the
+[unsigned IPA installation guide](docs/INSTALL_IPA.md)). On first launch, choose your own Paper Mario
+(USA) 1.0 ROM in Files; PaperPad extracts it privately on the device. Install over an existing
+PaperPad to keep your saves. PaperPad Original (below) is a separate app with separate saves.
 
 ## PaperPad Original reference
 
@@ -40,7 +50,7 @@ This repository contains integration source, pinned maintained dependencies, scr
 
 ## Project status
 
-PaperPad 0.2.0 is released as a PadForge recipe: you build the app from your own ROM (see [Get PaperPad](#get-paperpad)). Earlier preview downloads are retired. There is no TestFlight, App Store release, signed download, or notarized macOS build.
+PaperPad Original's preview downloads are retired. PadForge builds the current PaperPad (see [Get PaperPad](#get-paperpad)); to build Original yourself, use `scripts/build-ios-device.sh --rom /absolute/path/to/rom` as described in [Get started](#get-started). There is no TestFlight, App Store release, signed download, or notarized macOS build.
 
 | Target | Current status |
 |---|---|
@@ -53,20 +63,6 @@ PaperPad 0.2.0 is released as a PadForge recipe: you build the app from your own
 Preview 2 adds targeted SDL2 controller-slot reconciliation for missed disconnects, reconnects, and foreground resume. Deterministic tests cover single-controller return, two-controller slot preservation, held-input release, and a missed removal event. The exact signed release candidate also booted on the attached iPad after an in-place update that preserved its private ROM, saves, and controller preferences. Physical Bluetooth, wired, and natural-sleep reconnect acceptance remains open, as do complete mapping, physical-iPhone hands-on acceptance, and chapter-spanning testing.
 
 See [Current status](docs/STATUS.md), [Technical debt](docs/TECH-DEBT.md), and the [Release checklist](docs/RELEASE_CHECKLIST.md) for dated evidence and the remaining gates.
-
-## Get PaperPad
-
-Releases publish no app: PaperPad is compiled from Paper Mario's decompilation and your own ROM, so
-you make the app yourself on an Apple silicon Mac with Xcode. Download
-[PadForge](https://github.com/chrissotraidis/padforge/releases/latest), unzip it, double-click
-`PadForge.command`, choose PaperPad and drag in your own Paper Mario (USA) 1.0 ROM. PadForge builds
-the app from this repository's [latest release](https://github.com/chrissotraidis/paperpad/releases/latest)
-and saves an unsigned IPA in the folder you choose; install it with AltStore Classic, SideStore or
-Sideloadly (see the [unsigned IPA installation guide](docs/INSTALL_IPA.md)). Install over an existing
-PaperPad to keep your saves, and on first launch choose the same ROM in Files. The IPA contains code
-made from your ROM: keep it to yourself.
-
-- iPhone or iPad with iOS/iPadOS 15 or newer
 
 ## Get started
 
@@ -260,7 +256,7 @@ No. You must provide your own legally obtained, unmodified Paper Mario (US) 1.0 
 <details>
 <summary><strong>Is there an IPA or App Store build?</strong></summary>
 
-Previous builds have been retired; a new version is in progress.
+No published IPA: PadForge builds your own on an Apple silicon Mac (see [Get PaperPad](#get-paperpad)). There is no App Store or TestFlight build.
 </details>
 
 <details>
