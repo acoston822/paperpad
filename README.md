@@ -18,7 +18,7 @@ own on an Apple silicon Mac with Xcode. Download
 [PadMint](https://github.com/chrissotraidis/padmint/releases/latest), unzip it, double-click
 `PadMint.command` and choose PaperPad. PadMint builds the app from this repository's
 [latest release](https://github.com/chrissotraidis/paperpad/releases/latest) and saves an unsigned
-IPA in the folder you choose; install it with AltStore Classic, SideStore or Sideloadly (see the
+IPA in your Downloads folder; install it with AltStore Classic, SideStore or Sideloadly (see the
 [unsigned IPA installation guide](docs/INSTALL_IPA.md)). On first launch, choose your own Paper Mario
 (USA) 1.0 ROM in Files; PaperPad extracts it privately on the device. Install over an existing
 PaperPad to keep your saves. PaperPad Original (below) is a separate app with separate saves.
