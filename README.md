@@ -15,8 +15,8 @@ The release includes exact nested sources, notices, build provenance and checksu
 
 Releases publish no app: PaperPad is compiled from the Paper Mario decompilation, so you make your
 own on an Apple silicon Mac with Xcode. Download
-[PadForge](https://github.com/chrissotraidis/padforge/releases/latest), unzip it, double-click
-`PadForge.command` and choose PaperPad. PadForge builds the app from this repository's
+[PadMint](https://github.com/chrissotraidis/padmint/releases/latest), unzip it, double-click
+`PadMint.command` and choose PaperPad. PadMint builds the app from this repository's
 [latest release](https://github.com/chrissotraidis/paperpad/releases/latest) and saves an unsigned
 IPA in the folder you choose; install it with AltStore Classic, SideStore or Sideloadly (see the
 [unsigned IPA installation guide](docs/INSTALL_IPA.md)). On first launch, choose your own Paper Mario
@@ -50,7 +50,7 @@ This repository contains integration source, pinned maintained dependencies, scr
 
 ## Project status
 
-PaperPad Original's preview downloads are retired. PadForge builds the current PaperPad (see [Get PaperPad](#get-paperpad)); to build Original yourself, use `scripts/build-ios-device.sh --rom /absolute/path/to/rom` as described in [Get started](#get-started). There is no TestFlight, App Store release, signed download, or notarized macOS build.
+PaperPad Original's preview downloads are retired. PadMint builds the current PaperPad (see [Get PaperPad](#get-paperpad)); to build Original yourself, use `scripts/build-ios-device.sh --rom /absolute/path/to/rom` as described in [Get started](#get-started). There is no TestFlight, App Store release, signed download, or notarized macOS build.
 
 | Target | Current status |
 |---|---|
@@ -256,7 +256,7 @@ No. You must provide your own legally obtained, unmodified Paper Mario (US) 1.0 
 <details>
 <summary><strong>Is there an IPA or App Store build?</strong></summary>
 
-No published IPA: PadForge builds your own on an Apple silicon Mac (see [Get PaperPad](#get-paperpad)). There is no App Store or TestFlight build.
+No published IPA: PadMint builds your own on an Apple silicon Mac (see [Get PaperPad](#get-paperpad)). There is no App Store or TestFlight build.
 </details>
 
 <details>
