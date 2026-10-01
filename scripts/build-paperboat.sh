@@ -7,6 +7,11 @@ case "${1:-device}" in
  simulator) platform=SIMULATORARM64; profile=simulator ;;
  *) echo 'usage: scripts/build-paperboat.sh [device|simulator]' >&2; exit 2 ;;
 esac
+build_jobs="${PAPERPAD_BUILD_JOBS:-${CMAKE_BUILD_PARALLEL_LEVEL:-8}}"
+if [[ ! "$build_jobs" =~ ^[1-9][0-9]*$ ]]; then
+ echo 'PaperBoat build jobs must be a positive whole number (1, 2, ...)' >&2
+ exit 2
+fi
 if [[ ! -e "$root/vendor/paperboat/.git" ]]; then
  git -C "$root" submodule update --init --recursive -- vendor/paperboat
 fi
@@ -16,5 +21,5 @@ cmake -S "$root/vendor/paperboat" -B "$root/build-paperboat-$profile" -G Ninja \
  -DIOS_SIGNING=OFF -DCMAKE_BUILD_TYPE=Release -DPAPERPAD_APP_ROOT="$root" \
  -DSDL_SHARED=OFF -DSDL_STATIC=ON
 python3 "$root/scripts/verify-paperboat.py" --build-dir "$root/build-paperboat-$profile"
-cmake --build "$root/build-paperboat-$profile" --parallel "${PAPERPAD_BUILD_JOBS:-8}"
+cmake --build "$root/build-paperboat-$profile" --parallel "$build_jobs"
 python3 "$root/scripts/record-paperboat-build.py" "$root/build-paperboat-$profile"
