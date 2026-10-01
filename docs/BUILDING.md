@@ -1,6 +1,8 @@
 # Building PaperPad
 
-These instructions describe the maintained Apple Silicon source-build paths. The iOS Simulator path was rebuilt and exercised on 2026-08-10; the macOS path was last exercised on 2026-08-09. PaperPad does not distribute a ROM or ROM-derived playable output.
+For current PaperPad (PaperBoat, iOS/iPadOS 16.3+), follow the README's **Get PaperPad** PadMint route and `INSTALL_IPA.md` for signing your locally built IPA. Its source-development entry point is `scripts/build-paperboat.sh device`, documented in `PAPERBOAT_DEVELOPMENT.md`.
+
+The instructions below are for **PaperPad Original (ReCut/RT64)**, not PaperBoat's player requirements. The iOS Simulator path was rebuilt and exercised on 2026-08-10; the macOS path was last exercised on 2026-08-09. PaperPad does not distribute a ROM or ROM-derived playable output. Original and PaperBoat retain separate bundle identities and saves.
 
 ## Host requirements
 
@@ -58,7 +60,7 @@ Both app artifacts must remain ROM-free.
 
 ## Package the unsigned IPA
 
-After producing `build-ios-device/Release/PaperPad.app`, create the public self-signable package with:
+After producing Original's `build-ios-device/Release/PaperPad.app`, create a local unsigned package with:
 
 ```sh
 scripts/package-unsigned-ipa.sh
@@ -66,9 +68,9 @@ scripts/audit-ios-package.sh artifacts/PaperPad-v0.1.0-preview.2-unsigned.ipa
 (cd artifacts && shasum -a 256 -c PaperPad-v0.1.0-preview.2-unsigned.ipa.sha256)
 ```
 
-The packager removes the local development signature and provisioning profile, adds the install/rights documents and dependency licenses, normalizes archive timestamps, and refuses an IPA containing game data, saves, logs, signing material, unexpected runtime libraries, or personal build paths. The result remains under ignored `artifacts/`; attach it to the matching GitHub release rather than committing it.
+The packager removes the local development signature and provisioning profile, adds the install/rights documents and dependency licenses, normalizes archive timestamps, and refuses an IPA containing game data, saves, logs, signing material, unexpected runtime libraries, or personal build paths. The result remains under ignored `artifacts/`; keep it local, never commit or upload it. Public downloads are retired.
 
-Preview 2's audited artifact is `PaperPad-v0.1.0-preview.2-unsigned.ipa` with SHA-256 `ea908c33fce6ba883acadff3ccc3025a1a7ef0284947c09cf98f3602af84d029`. It must be signed by the user before installation; see [INSTALL_IPA.md](INSTALL_IPA.md).
+Historical Preview 2's audited artifact is `PaperPad-v0.1.0-preview.2-unsigned.ipa` with SHA-256 `ea908c33fce6ba883acadff3ccc3025a1a7ef0284947c09cf98f3602af84d029`. This records the retired Original artifact, not the checksum of a new local build. It must be signed by the user before installation; see [INSTALL_IPA.md](INSTALL_IPA.md).
 
 ## iOS Simulator install and first run
 
