@@ -14,7 +14,8 @@ The release includes exact nested sources, notices, build provenance and checksu
 ## Get PaperPad
 
 Releases publish no app: PaperPad is compiled from the Paper Mario decompilation, so you make your
-own on an Apple silicon Mac with Xcode. Download
+own on an Apple silicon Mac with Xcode and its iOS platform. Install CMake and Ninja
+once with `brew install cmake ninja`, then download
 [PadMint](https://github.com/chrissotraidis/padmint/releases/latest), unzip it, double-click
 `PadMint.command` and choose PaperPad. PadMint builds the app from this repository's
 [latest release](https://github.com/chrissotraidis/paperpad/releases/latest) and saves an unsigned
