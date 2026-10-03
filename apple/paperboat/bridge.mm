@@ -26,6 +26,7 @@ extern "C" void paperpad_touch_snapshot(uint16_t*, float*, float*);
 namespace {
 std::atomic<float> volume{1};
 std::atomic<int> resolution{0}, aspect{0};
+std::atomic<int> frameRate{0}; // 0 = engine default (Auto), otherwise a target FPS.
 std::atomic<bool> settingsChanged{true}, active{true}, modal{false}, running{false};
 std::atomic<uint64_t> lastFrame{0};
 std::atomic<uint32_t> renderWidth{0}, renderHeight{0};
@@ -64,6 +65,7 @@ float axis(SDL_GameController* c, SDL_GameControllerAxis a) {
 extern "C" void PaperPadBoat_SetInputSuspended(int value) {modal.store(value!=0);}
 extern "C" void PaperPad_SetAudioVolume(float v) {volume.store(std::clamp(v,0.f,1.f));settingsChanged.store(true);}
 extern "C" void PaperPad_SetGraphicsConfig(int r,int a,int) {resolution.store(std::clamp(r,0,4));aspect.store(a);settingsChanged.store(true);}
+extern "C" void PaperPad_SetFrameRate(int fps) {frameRate.store(fps<=0?0:std::clamp(fps,20,240));settingsChanged.store(true);}
 extern "C" int PaperPad_GetEffectiveRenderState(uint32_t* scale,uint32_t* w,uint32_t* h) {
  auto width=renderWidth.load(),height=renderHeight.load();
  if(scale)*scale=height*1000/240;if(w)*w=width;if(h)*h=height;
@@ -109,6 +111,22 @@ extern "C" void PaperPadBoat_Frame() {
   std::fprintf(stderr,"[paperpad-boat] settings volume=%.2f resolution=%d aspect=%d effective_scale=%d drawable=%dx%d\n",volume.load(),resolution.load(),aspect.load(),chosenScale,pixelWidth,pixelHeight);
  }
  auto window=std::dynamic_pointer_cast<Fast::Fast3dWindow>(Ship::Context::GetRawInstance()->GetWindow());
+ {
+  // Frame rate: remember the engine's own default once, apply a chosen target, and
+  // restore the default when the setting returns to Auto.
+  static int engineDefaultFps=0,appliedFps=0;
+  if(engineDefaultFps==0)engineDefaultFps=window->GetTargetFps();
+  const int wanted=frameRate.load()>0?frameRate.load():engineDefaultFps;
+  if(wanted>0 && wanted!=appliedFps) {
+   if(frameRate.load()>0) {
+    CVarSetInteger("gSettings.InterpolationFPS",wanted);
+    CVarSetInteger("gSettings.MatchRefreshRate",0);
+   }
+   window->SetTargetFps(wanted);
+   std::fprintf(stderr,"[paperpad-boat] frame_rate target=%d (engine default=%d, setting=%d)\n",wanted,engineDefaultFps,frameRate.load());
+   appliedFps=wanted;
+  }
+ }
  if(auto interpreter=window->GetInterpreterWeak().lock()) {
   uint32_t w=0,h=0;interpreter->GetCurDimensions(&w,&h);renderWidth.store(w);renderHeight.store(h);
  }

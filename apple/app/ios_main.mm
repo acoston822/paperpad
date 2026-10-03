@@ -20,6 +20,7 @@
 extern "C" int paperpad_recomp_main(int argc, char** argv);
 #ifdef PAPERPAD_APP
 extern "C" void PaperPadBoat_SetInputSuspended(int);
+extern "C" void PaperPad_SetFrameRate(int);
 #endif
 
 @class PaperPadTouchOverlayView;
@@ -140,6 +141,15 @@ NSInteger resolutionModeFromSettings(NSDictionary* settings) {
     }
     return MAX(0, MIN(4, resolution));
 }
+
+#ifdef PAPERPAD_APP
+// Frame Rate choices: Auto (engine default), 30, 60, 120.
+int frameRateFromSettings(NSDictionary* settings) {
+    static const int kRates[] = {0, 30, 60, 120};
+    NSInteger index = settings[@"frameRate"] == nil ? 0 : [settings[@"frameRate"] integerValue];
+    return kRates[MAX(0, MIN(3, index))];
+}
+#endif
 
 } // namespace
 
@@ -1140,6 +1150,7 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
     UISwitch* _enabledSwitch;
     UISegmentedControl* _resolution;
     UISegmentedControl* _aspect;
+    UISegmentedControl* _frameRate;
 }
 - (instancetype)init {
     return [super initWithStyle:UITableViewStyleInsetGrouped];
@@ -1189,11 +1200,11 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
 - (void)done {
     [self dismissViewControllerAnimated:YES completion:^{ [g_touch_overlay setModalControlsHidden:NO]; }];
 }
-- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView { return self.touchSettingsOnly ? 2 : 3; }
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView { return self.touchSettingsOnly ? 2 : 4; }
 - (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section { return 1; }
 - (NSString*)tableView:(UITableView*)tableView titleForHeaderInSection:(NSInteger)section {
     return self.touchSettingsOnly ? @[@"On-screen Controls", @"Opacity"][section]
-                                 : @[@"Volume", @"Resolution", @"Aspect Ratio"][section];
+                                 : @[@"Volume", @"Resolution", @"Aspect Ratio", @"Frame Rate"][section];
 }
 - (NSString*)tableView:(UITableView*)tableView titleForFooterInSection:(NSInteger)section {
     if (!self.touchSettingsOnly && section == 1) {
@@ -1201,6 +1212,9 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
         if (PaperPad_GetEffectiveRenderState(&scale, &width, &height))
             return [NSString stringWithFormat:@"Currently %.2f× (%u×%u). Auto fits the screen up to 4×.", scale / 1000.0, width, height];
         return @"Auto fits the screen at a whole-number scale up to 4×.";
+    }
+    if (!self.touchSettingsOnly && section == 3) {
+        return @"Auto uses the game's default. Higher rates are interpolated and are limited by your display (120 needs a ProMotion iPad).";
     }
     return nil;
 }
@@ -1234,6 +1248,13 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
         UIStackView* row = [[[UIStackView alloc] initWithArrangedSubviews:@[_slider, _valueLabel]] autorelease];
         row.spacing = 12; row.alignment = UIStackViewAlignmentCenter;
         control = row;
+    } else if (!self.touchSettingsOnly && section == 3) {
+        UISegmentedControl* segments = [[[UISegmentedControl alloc] initWithItems:@[@"Auto", @"30", @"60", @"120"]] autorelease];
+        segments.accessibilityLabel = @"Frame Rate";
+        segments.selectedSegmentIndex = saved[@"frameRate"] == nil ? 0 : MAX(0, MIN(3, [saved[@"frameRate"] integerValue]));
+        [segments addTarget:self action:@selector(frameRateChanged:) forControlEvents:UIControlEventValueChanged];
+        _frameRate = segments;
+        control = segments;
     } else {
         UISegmentedControl* segments = [[[UISegmentedControl alloc] initWithItems:section == 1
             ? @[@"Auto", @"1×", @"2×", @"3×", @"4×"] : @[@"Original (4:3)", @"Fill Screen"]] autorelease];
@@ -1280,6 +1301,10 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
     [self saveValue:@(sender.selectedSegmentIndex) forKey:sender == _resolution ? @"resolution" : @"aspect"];
     NSDictionary* saved = [self savedSettings];
     PaperPad_SetGraphicsConfig((int)resolutionModeFromSettings(saved), [saved[@"aspect"] intValue], 0);
+}
+- (void)frameRateChanged:(UISegmentedControl*)sender {
+    [self saveValue:@(sender.selectedSegmentIndex) forKey:@"frameRate"];
+    PaperPad_SetFrameRate(frameRateFromSettings([self savedSettings]));
 }
 @end
 #endif
@@ -1639,6 +1664,9 @@ extern "C" int SDL_main(int argc, char** argv) {
             int aspect = settings[@"aspect"] ? [settings[@"aspect"] intValue] : 0;
             PaperPad_SetAudioVolume(volume);
             PaperPad_SetGraphicsConfig(static_cast<int>(resolution), aspect, 0);
+#ifdef PAPERPAD_APP
+            PaperPad_SetFrameRate(frameRateFromSettings(settings));
+#endif
         }
 
         NSFileManager* files = [NSFileManager defaultManager];
