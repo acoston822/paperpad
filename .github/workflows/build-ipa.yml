@@ -1,0 +1,40 @@
+name: Build unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          python3 --version
+
+      - name: Install build tools
+        run: brew install cmake ninja
+
+      - name: Build PaperPad (device, unsigned)
+        run: scripts/build-paperboat.sh device
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          python3 scripts/package-paperboat.py "$RUNNER_TEMP/out/PaperPad.ipa"
+          shasum -a 256 "$RUNNER_TEMP/out/PaperPad.ipa" | tee "$RUNNER_TEMP/out/PaperPad.ipa.sha256"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: PaperPad-unsigned-ipa
+          path: ${{ runner.temp }}/out/*
+          retention-days: 7
+          if-no-files-found: error
