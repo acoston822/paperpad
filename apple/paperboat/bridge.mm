@@ -208,6 +208,17 @@ extern "C" int paperpad_recomp_main(int argc,char** argv) {
  const auto root=std::filesystem::current_path().string();
  setenv("SHIP_HOME",root.c_str(),1);
  setenv("SHIP_LOG_STDIO_ONLY","1",1);
+  {
+  NSURL* docs=[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+  if(docs){
+   std::filesystem::path shared=std::filesystem::path(docs.path.UTF8String)/"mods";
+   std::filesystem::path link=std::filesystem::path(root)/"mods";
+   std::error_code ec;
+   std::filesystem::create_directories(shared,ec);
+   if(!std::filesystem::exists(link,ec) && !std::filesystem::is_symlink(link,ec))
+    std::filesystem::create_directory_symlink(shared,link,ec);
+  }
+ }
  dup2(STDERR_FILENO,STDOUT_FILENO); // Include upstream stdout/spdlog in bounded shared diagnostics.
  std::fprintf(stderr,"[paperpad-boat] engine=PaperBoat build=0.2.0-dev bundle=com.chrissotraidis.paperpad.boat\n");
  if(!prepareAssets(root))return EXIT_FAILURE;
