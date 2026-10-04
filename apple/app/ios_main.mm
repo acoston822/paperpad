@@ -1232,7 +1232,14 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
         return @"Auto uses the game's default. Higher rates are interpolated and limited by your display (above 60 needs a ProMotion iPad; 90 may look uneven on a 120 Hz screen).";
     }
     if (!self.touchSettingsOnly && section == 4) {
-        return @"Loads replacement textures from .o2r packs in the mods folder (Files → PaperPad → mods). If nothing changes, relaunch the app.";
+        NSString* modsDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject stringByAppendingPathComponent:@"mods"];
+        NSMutableArray* packs = [NSMutableArray array];
+        for (NSString* name in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:modsDir error:nil] ?: @[]) {
+            NSString* ext = name.pathExtension.lowercaseString;
+            if ([ext isEqualToString:@"o2r"] || [ext isEqualToString:@"otr"] || [ext isEqualToString:@"zip"]) [packs addObject:name];
+        }
+        NSString* found = packs.count ? [NSString stringWithFormat:@"Found %lu pack(s): %@.", (unsigned long)packs.count, [packs componentsJoinedByString:@", "]] : @"No packs found in the mods folder.";
+        return [NSString stringWithFormat:@"Loads replacement textures from .o2r packs in the mods folder (Files → PaperPad → mods). Packs load at launch, so relaunch after adding one. %@", found];
     }
     if (!self.touchSettingsOnly && section == 5) {
         return @"Hold R to move at double speed in the overworld (not during cutscenes).";
