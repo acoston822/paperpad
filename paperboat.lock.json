@@ -3,8 +3,8 @@
   "upstreamBase": "2f7d38e07bcb85c216bf37e8a0a1a5cf8731ceef",
   "sources": {
     "vendor/paperboat": {
-      "url": "https://github.com/chrissotraidis/PaperBoat.git",
-      "commit": "0f894c52e9a3844d7070fe10004f4d16eb563046"
+      "url": "https://github.com/acoston822/PaperBoat.git",
+      "commit": "5f2c31b148e631185f9e5836f57db47f807e9341"
     },
     "vendor/paperboat/external/libultraship": {
       "url": "https://github.com/chrissotraidis/libultraship.git",

@@ -3,4 +3,4 @@
 	url = https://github.com/chrissotraidis/Paper-Mario-ReCut.git
 [submodule "vendor/paperboat"]
 	path = vendor/paperboat
-	url = https://github.com/chrissotraidis/PaperBoat.git
+	url = https://github.com/acoston822/PaperBoat.git

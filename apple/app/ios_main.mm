@@ -22,6 +22,7 @@ extern "C" int paperpad_recomp_main(int argc, char** argv);
 extern "C" void PaperPadBoat_SetInputSuspended(int);
 extern "C" void PaperPad_SetFrameRate(int);
 extern "C" void PaperPad_SetAlternateAssets(int);
+extern "C" void PaperPad_SetSprintButton(int);
 #endif
 
 @class PaperPadTouchOverlayView;
@@ -1201,11 +1202,11 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
 - (void)done {
     [self dismissViewControllerAnimated:YES completion:^{ [g_touch_overlay setModalControlsHidden:NO]; }];
 }
-- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView { return self.touchSettingsOnly ? 2 : 5; }
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView { return self.touchSettingsOnly ? 2 : 6; }
 - (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section { return 1; }
 - (NSString*)tableView:(UITableView*)tableView titleForHeaderInSection:(NSInteger)section {
     return self.touchSettingsOnly ? @[@"On-screen Controls", @"Opacity"][section]
-                                 : @[@"Volume", @"Resolution", @"Aspect Ratio", @"Frame Rate", @"Texture Packs"][section];
+                                 : @[@"Volume", @"Resolution", @"Aspect Ratio", @"Frame Rate", @"Texture Packs", @"Gameplay"][section];
 }
 - (NSString*)tableView:(UITableView*)tableView titleForFooterInSection:(NSInteger)section {
     if (!self.touchSettingsOnly && section == 1) {
@@ -1219,6 +1220,9 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
     }
     if (!self.touchSettingsOnly && section == 4) {
         return @"Loads replacement textures from .o2r packs in the mods folder (Files → PaperPad → mods). If nothing changes, relaunch the app.";
+    }
+    if (!self.touchSettingsOnly && section == 5) {
+        return @"Hold R to move at double speed in the overworld (not during cutscenes).";
     }
     return nil;
 }
@@ -1241,6 +1245,15 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
         toggle.on = [saved[@"alternateAssets"] boolValue];
         toggle.accessibilityLabel = @"Alternate Assets (texture packs)";
         [toggle addTarget:self action:@selector(alternateAssetsChanged:) forControlEvents:UIControlEventValueChanged];
+        cell.accessoryView = toggle;
+        return cell;
+    }
+    if (!self.touchSettingsOnly && section == 5) {
+        cell.textLabel.text = @"Sprint Button (R)";
+        UISwitch* toggle = [[[UISwitch alloc] init] autorelease];
+        toggle.on = [saved[@"sprintButton"] boolValue];
+        toggle.accessibilityLabel = @"Sprint Button, hold R for double speed";
+        [toggle addTarget:self action:@selector(sprintButtonChanged:) forControlEvents:UIControlEventValueChanged];
         cell.accessoryView = toggle;
         return cell;
     }
@@ -1322,6 +1335,10 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
 - (void)alternateAssetsChanged:(UISwitch*)sender {
     [self saveValue:@(sender.on) forKey:@"alternateAssets"];
     PaperPad_SetAlternateAssets(sender.on ? 1 : 0);
+}
+- (void)sprintButtonChanged:(UISwitch*)sender {
+    [self saveValue:@(sender.on) forKey:@"sprintButton"];
+    PaperPad_SetSprintButton(sender.on ? 1 : 0);
 }
 @end
 #endif
@@ -1684,6 +1701,7 @@ extern "C" int SDL_main(int argc, char** argv) {
 #ifdef PAPERPAD_APP
             PaperPad_SetFrameRate(frameRateFromSettings(settings));
             PaperPad_SetAlternateAssets([settings[@"alternateAssets"] boolValue] ? 1 : 0);
+            PaperPad_SetSprintButton([settings[@"sprintButton"] boolValue] ? 1 : 0);
 #endif
         }
 
