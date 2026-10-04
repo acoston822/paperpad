@@ -233,8 +233,19 @@ extern "C" int paperpad_recomp_main(int argc,char** argv) {
    std::filesystem::path link=std::filesystem::path(root)/"mods";
    std::error_code ec;
    std::filesystem::create_directories(shared,ec);
-   if(!std::filesystem::exists(link,ec) && !std::filesystem::is_symlink(link,ec))
-    std::filesystem::create_directory_symlink(shared,link,ec);
+   if(!std::filesystem::is_symlink(link,ec)) {
+    // An earlier launch (or the engine) may have created a real, private mods folder.
+    // Move anything in it to the Files-visible folder, then replace it with a link.
+    if(std::filesystem::is_directory(link,ec)) {
+     for(const auto& entry:std::filesystem::directory_iterator(link,ec)) {
+      std::error_code mv;const auto dest=shared/entry.path().filename();
+      if(!std::filesystem::exists(dest,mv))std::filesystem::rename(entry.path(),dest,mv);
+     }
+     std::filesystem::remove(link,ec); // only succeeds when the folder is empty
+    }
+    if(!std::filesystem::exists(link,ec))std::filesystem::create_directory_symlink(shared,link,ec);
+   }
+   std::fprintf(stderr,"[paperpad-boat] mods folder: %s -> %s linked=%d\n",link.c_str(),shared.c_str(),int(std::filesystem::is_symlink(link,ec)));
   }
  }
  dup2(STDERR_FILENO,STDOUT_FILENO); // Include upstream stdout/spdlog in bounded shared diagnostics.
