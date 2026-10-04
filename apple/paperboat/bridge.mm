@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <filesystem>
 #include <zip.h>
+#include <mach/mach.h>
 #include "extractor/GameExtractor.h"
 extern "C" int paperpad_boat_main(int, char**);
 extern "C" void paperpad_touch_attach(void*);
@@ -32,6 +33,12 @@ std::atomic<int> sprintButton{0}; // 1 = hold R to move at double speed (engine 
 std::atomic<bool> settingsChanged{true}, active{true}, modal{false}, running{false};
 std::atomic<uint64_t> lastFrame{0};
 std::atomic<uint32_t> renderWidth{0}, renderHeight{0};
+// Memory the system charges to this app (what iOS uses when deciding to terminate it), in MB.
+uint64_t footprintMB() {
+ task_vm_info_data_t info{};mach_msg_type_number_t count=TASK_VM_INFO_COUNT;
+ if(task_info(mach_task_self(),TASK_VM_INFO,reinterpret_cast<task_info_t>(&info),&count)!=KERN_SUCCESS)return 0;
+ return info.phys_footprint/(1024ull*1024ull);
+}
 class Backend final : public paperpad::input::ControllerBackend {
 public:
  std::vector<paperpad::input::EnumeratedController> enumerate() override {
@@ -137,7 +144,7 @@ extern "C" void PaperPadBoat_Frame() {
   uint32_t w=0,h=0;interpreter->GetCurDimensions(&w,&h);renderWidth.store(w);renderHeight.store(h);
  }
  static uint64_t nextReport=0,frames=0;++frames;
- if(now>=nextReport){std::fprintf(stderr,"[paperpad-boat] frame=%llu runtime_ms=%llu render=%ux%u controllers=%zu\n",frames,now,renderWidth.load(),renderHeight.load(),slots.connected_count());nextReport=now+10000;}
+ if(now>=nextReport){std::fprintf(stderr,"[paperpad-boat] frame=%llu runtime_ms=%llu render=%ux%u controllers=%zu footprint_mb=%llu\n",frames,now,renderWidth.load(),renderHeight.load(),slots.connected_count(),(unsigned long long)footprintMB());nextReport=now+10000;}
 }
 extern "C" void PaperPadBoat_ReadController(void* raw) {
  auto* pads=static_cast<OSContPad*>(raw);
