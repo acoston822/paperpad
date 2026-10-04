@@ -145,11 +145,24 @@ NSInteger resolutionModeFromSettings(NSDictionary* settings) {
 }
 
 #ifdef PAPERPAD_APP
-// Frame Rate choices: Auto (engine default), 30, 60, 120.
+// Frame Rate choices (0 = Auto, the engine default). Settings now store the FPS value
+// itself under "frameRateFps"; earlier builds stored a 0-3 index under "frameRate" for
+// {Auto, 30, 60, 120}, which is still honored when no FPS value has been saved yet.
+static const int kFrameRateChoices[] = {0, 30, 60, 90, 120};
 int frameRateFromSettings(NSDictionary* settings) {
-    static const int kRates[] = {0, 30, 60, 120};
+    if (settings[@"frameRateFps"] != nil) {
+        const int fps = [settings[@"frameRateFps"] intValue];
+        for (int choice : kFrameRateChoices) if (choice == fps) return fps;
+        return 0;
+    }
+    static const int kLegacyRates[] = {0, 30, 60, 120};
     NSInteger index = settings[@"frameRate"] == nil ? 0 : [settings[@"frameRate"] integerValue];
-    return kRates[MAX(0, MIN(3, index))];
+    return kLegacyRates[MAX(0, MIN(3, index))];
+}
+NSInteger frameRateSegmentIndex(NSDictionary* settings) {
+    const int fps = frameRateFromSettings(settings);
+    for (NSInteger i = 0; i < 5; i++) if (kFrameRateChoices[i] == fps) return i;
+    return 0;
 }
 #endif
 
@@ -1216,7 +1229,7 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
         return @"Auto fits the screen at a whole-number scale up to 4×.";
     }
     if (!self.touchSettingsOnly && section == 3) {
-        return @"Auto uses the game's default. Higher rates are interpolated and are limited by your display (120 needs a ProMotion iPad).";
+        return @"Auto uses the game's default. Higher rates are interpolated and limited by your display (above 60 needs a ProMotion iPad; 90 may look uneven on a 120 Hz screen).";
     }
     if (!self.touchSettingsOnly && section == 4) {
         return @"Loads replacement textures from .o2r packs in the mods folder (Files → PaperPad → mods). If nothing changes, relaunch the app.";
@@ -1275,9 +1288,9 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
         row.spacing = 12; row.alignment = UIStackViewAlignmentCenter;
         control = row;
     } else if (!self.touchSettingsOnly && section == 3) {
-        UISegmentedControl* segments = [[[UISegmentedControl alloc] initWithItems:@[@"Auto", @"30", @"60", @"120"]] autorelease];
+        UISegmentedControl* segments = [[[UISegmentedControl alloc] initWithItems:@[@"Auto", @"30", @"60", @"90", @"120"]] autorelease];
         segments.accessibilityLabel = @"Frame Rate";
-        segments.selectedSegmentIndex = saved[@"frameRate"] == nil ? 0 : MAX(0, MIN(3, [saved[@"frameRate"] integerValue]));
+        segments.selectedSegmentIndex = frameRateSegmentIndex(saved);
         [segments addTarget:self action:@selector(frameRateChanged:) forControlEvents:UIControlEventValueChanged];
         _frameRate = segments;
         control = segments;
@@ -1329,7 +1342,7 @@ extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
     PaperPad_SetGraphicsConfig((int)resolutionModeFromSettings(saved), [saved[@"aspect"] intValue], 0);
 }
 - (void)frameRateChanged:(UISegmentedControl*)sender {
-    [self saveValue:@(sender.selectedSegmentIndex) forKey:@"frameRate"];
+    [self saveValue:@(kFrameRateChoices[MAX(0, MIN(4, sender.selectedSegmentIndex))]) forKey:@"frameRateFps"];
     PaperPad_SetFrameRate(frameRateFromSettings([self savedSettings]));
 }
 - (void)alternateAssetsChanged:(UISwitch*)sender {
