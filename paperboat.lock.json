@@ -4,11 +4,11 @@
   "sources": {
     "vendor/paperboat": {
       "url": "https://github.com/acoston822/PaperBoat.git",
-      "commit": "3c5dda5e1ebba1bb34a37939b16c19bef6bcc10a"
+      "commit": "6ba166bd9740a21dcf577ea5e2e42e5f1ac7a020"
     },
     "vendor/paperboat/external/libultraship": {
-      "url": "https://github.com/acoston822/libultraship.git",
-      "commit": "e30fd86d96612e3f1b84509add90098648f27a2c"
+      "url": "https://github.com/chrissotraidis/libultraship.git",
+      "commit": "89801b5e674af087f35ea3a4abddd0f8c61e59d4"
     },
     "vendor/paperboat/external/torch": {
       "url": "https://github.com/JeodC/Torch.git",

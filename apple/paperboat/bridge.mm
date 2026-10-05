@@ -142,7 +142,6 @@ extern "C" void PaperPadBoat_Frame() {
   CVarSetFloat("gSettings.InternalResolution",1.f);
   CVarSetInteger("gEnhancements.Mods.AlternateAssets",alternateAssets.load());
   CVarSetInteger("gEnhancements.SprintButton",sprintButton.load());
-  CVarSetInteger("gEnhancements.Mods.HdIgnoreRuntimePalette",1); // HD sprites stay HD when the game dims or shades them.
   std::fprintf(stderr,"[paperpad-boat] settings volume=%.2f resolution=%d aspect=%d effective_scale=%d drawable=%dx%d alt_assets=%d sprint=%d\n",volume.load(),resolution.load(),aspect.load(),chosenScale,pixelWidth,pixelHeight,alternateAssets.load(),sprintButton.load());
  }
  auto window=std::dynamic_pointer_cast<Fast::Fast3dWindow>(Ship::Context::GetRawInstance()->GetWindow());
