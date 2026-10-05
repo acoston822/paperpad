@@ -20,6 +20,8 @@
 extern "C" int paperpad_recomp_main(int argc, char** argv);
 #ifdef PAPERPAD_APP
 extern "C" void PaperPadBoat_SetInputSuspended(int);
+extern "C" void PaperPadBoat_ToggleMenu(void);
+extern "C" int PaperPadBoat_IsMenuVisible(void);
 extern "C" void PaperPad_SetFrameRate(int);
 extern "C" void PaperPad_SetAlternateAssets(int);
 extern "C" void PaperPad_SetSprintButton(int);
@@ -161,6 +163,10 @@ int frameRateFromSettings(NSDictionary* settings) {
 - (void)setGameplayControlsEnabled:(BOOL)enabled opacity:(CGFloat)opacity;
 - (void)setPhysicalControllerConnected:(BOOL)connected;
 - (void)setModalControlsHidden:(BOOL)hidden;
+#ifdef PAPERPAD_APP
+- (void)presentPaperBoatMenu;
+- (void)setPaperBoatMenuVisible:(BOOL)visible;
+#endif
 @end
 
 // Native menu lifecycle keeps physical and touch input neutral until dismissal.
@@ -222,12 +228,9 @@ int frameRateFromSettings(NSDictionary* settings) {
         _utilityButton.accessibilityHint = @"Opens settings and game setup";
 #ifdef PAPERPAD_APP
         __unsafe_unretained PaperPadTouchOverlayView* owner = self;
-        ((PaperPadMenuButton*)_utilityButton).visibilityChanged = ^(BOOL visible) {
-            [owner clearInput];
-            [owner setMenuVisible:visible];
-        };
-        _utilityButton.showsMenuAsPrimaryAction = YES;
-        _utilityButton.menu = [self modernUtilityMenu];
+        ((PaperPadMenuButton*)_utilityButton).visibilityChanged = nil;
+        [_utilityButton addTarget:self action:@selector(presentPaperBoatMenu)
+                 forControlEvents:UIControlEventTouchUpInside];
         [_utilityButton setTitle:nil forState:UIControlStateNormal];
         [_utilityButton setImage:[UIImage systemImageNamed:@"ellipsis"] forState:UIControlStateNormal];
         // SunPad's fixed capsule appearance avoids iPadOS synthesizing a square
@@ -267,6 +270,15 @@ int frameRateFromSettings(NSDictionary* settings) {
 - (void)layoutSubviews {
     [super layoutSubviews];
     _utilityButton.frame = [self utilityButtonRect];
+}
+
+- (UIView*)hitTest:(CGPoint)point withEvent:(UIEvent*)event {
+#ifdef PAPERPAD_APP
+    if (_modalControlsHidden) {
+        return nil;
+    }
+#endif
+    return [super hitTest:point withEvent:event];
 }
 
 - (void)dealloc {
@@ -579,11 +591,21 @@ int frameRateFromSettings(NSDictionary* settings) {
 }
 
 #ifdef PAPERPAD_APP
+- (void)presentPaperBoatMenu {
+    [self clearInput];
+    PaperPadBoat_ToggleMenu();
+    const BOOL visible = PaperPadBoat_IsMenuVisible() != 0;
+    [self setPaperBoatMenuVisible:visible];
+}
+- (void)setPaperBoatMenuVisible:(BOOL)visible {
+    _modalControlsHidden = visible;
+    [self clearInput];
+    _utilityButton.hidden = visible || _editing;
+}
 - (void)setMenuVisible:(BOOL)visible {
     _modalControlsHidden = visible;
     PaperPadBoat_SetInputSuspended(visible ? 1 : 0);
     [self clearInput];
-    // Keep the native menu's anchor button in the hierarchy while it is open.
     _utilityButton.hidden = _editing;
 }
 - (UIAction*)menuAction:(NSString*)title icon:(NSString*)icon perform:(void (^)(UIViewController*))perform {
