@@ -72,6 +72,20 @@ float axis(SDL_GameController* c, SDL_GameControllerAxis a) {
 }
 }
 extern "C" void PaperPadBoat_SetInputSuspended(int value) {modal.store(value!=0);}
+extern "C" void PaperPadBoat_ToggleMenu() {
+ auto window=Ship::Context::GetRawInstance()->GetWindow();
+ if(!window || !window->GetGui()) return;
+ auto menu=window->GetGui()->GetMenu();
+ if(!menu) return;
+ menu->ToggleVisibility();
+ window->GetGui()->UpdateGamepadNavigation();
+}
+extern "C" int PaperPadBoat_IsMenuVisible() {
+ auto window=Ship::Context::GetRawInstance()->GetWindow();
+ if(!window || !window->GetGui()) return 0;
+ auto menu=window->GetGui()->GetMenu();
+ return menu && menu->IsVisible() ? 1 : 0;
+}
 extern "C" void PaperPad_SetAudioVolume(float v) {volume.store(std::clamp(v,0.f,1.f));settingsChanged.store(true);}
 extern "C" void PaperPad_SetGraphicsConfig(int r,int a,int) {resolution.store(std::clamp(r,0,4));aspect.store(a);settingsChanged.store(true);}
 extern "C" void PaperPad_SetFrameRate(int fps) {frameRate.store(fps<=0?0:std::clamp(fps,20,240));settingsChanged.store(true);}
