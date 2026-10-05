@@ -297,13 +297,25 @@ extern "C" int paperpad_recomp_main(int argc,char** argv) {
    std::filesystem::path link=std::filesystem::path(root)/"mods";
    std::error_code ec;
    std::filesystem::create_directories(shared,ec);
-   if(!std::filesystem::is_symlink(link,ec)) {
+   // The link stores an absolute path inside this app's container. After an update or
+   // reinstall the container path can change, leaving a dangling link and packs that
+   // silently stop loading. Verify the link on every launch and repair it if stale.
+   bool linkOk=false;
+   if(std::filesystem::is_symlink(link,ec)) {
+    const auto target=std::filesystem::read_symlink(link,ec);
+    linkOk=!ec && target==shared && std::filesystem::is_directory(shared,ec);
+    if(!linkOk)std::filesystem::remove(link,ec);
+   }
+   if(!linkOk) {
     // An earlier launch (or the engine) may have created a real, private mods folder.
     // Move anything in it to the Files-visible folder, then replace it with a link.
     if(std::filesystem::is_directory(link,ec)) {
      for(const auto& entry:std::filesystem::directory_iterator(link,ec)) {
-      std::error_code mv;const auto dest=shared/entry.path().filename();
-      if(!std::filesystem::exists(dest,mv))std::filesystem::rename(entry.path(),dest,mv);
+      std::error_code mv;auto dest=shared/entry.path().filename();
+      // Never overwrite or drop a pack: keep both copies under a distinct name.
+      for(int n=1;std::filesystem::exists(dest,mv)&&n<100;++n)
+       dest=shared/(entry.path().stem().string()+"-moved"+std::to_string(n)+entry.path().extension().string());
+      std::filesystem::rename(entry.path(),dest,mv);
      }
      std::filesystem::remove(link,ec); // only succeeds when the folder is empty
     }
