@@ -20,6 +20,9 @@
 #include <filesystem>
 #include <zip.h>
 #include <mach/mach.h>
+#if __has_include(<os/proc.h>)
+#include <os/proc.h>
+#endif
 #include "extractor/GameExtractor.h"
 extern "C" int paperpad_boat_main(int, char**);
 extern "C" void paperpad_touch_attach(void*);
@@ -38,6 +41,24 @@ uint64_t footprintMB() {
  task_vm_info_data_t info{};mach_msg_type_number_t count=TASK_VM_INFO_COUNT;
  if(task_info(mach_task_self(),TASK_VM_INFO,reinterpret_cast<task_info_t>(&info),&count)!=KERN_SUCCESS)return 0;
  return info.phys_footprint/(1024ull*1024ull);
+}
+// Texture-pack memory. The engine keeps every decoded replacement texture for the life of
+// the process, so memory only climbs as new areas are visited. When the app gets close to
+// what iOS allows, drop the replacement textures and let the game reload what it still
+// needs. Original (non-pack) assets are never touched.
+std::atomic<bool> memoryWarning{false};
+uint64_t availableMB() {
+#if __has_include(<os/proc.h>)
+ return os_proc_available_memory()/(1024ull*1024ull);
+#else
+ return UINT64_MAX;
+#endif
+}
+void releaseReplacementTextures(const char* reason) {
+ const uint64_t before=footprintMB();
+ gfx_texture_cache_clear(); // GPU cache + the interpreter's references to resolved textures
+ Ship::Context::GetRawInstance()->GetResourceManager()->UnloadResources("alt/*");
+ std::fprintf(stderr,"[paperpad-boat] released replacement textures (%s): footprint %llu -> %llu MB, available %llu MB\n",reason,(unsigned long long)before,(unsigned long long)footprintMB(),(unsigned long long)availableMB());
 }
 class Backend final : public paperpad::input::ControllerBackend {
 public:
@@ -142,6 +163,22 @@ extern "C" void PaperPadBoat_Frame() {
  }
  if(auto interpreter=window->GetInterpreterWeak().lock()) {
   uint32_t w=0,h=0;interpreter->GetCurDimensions(&w,&h);renderWidth.store(w);renderHeight.store(h);
+ }
+ {
+  // Check memory a couple of times a second; release at most every 8 seconds.
+  static uint64_t nextCheck=0,lastRelease=0;static bool observing=false;
+  if(!observing){observing=true;
+   [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil queue:nil usingBlock:^(NSNotification*){memoryWarning.store(true);}];}
+  if(alternateAssets.load() && now>=nextCheck) {
+   nextCheck=now+500;
+   constexpr uint64_t kFootprintLimitMB=1100,kAvailableFloorMB=1024;
+   const bool warned=memoryWarning.exchange(false);
+   const bool high=footprintMB()>kFootprintLimitMB||availableMB()<kAvailableFloorMB;
+   if((warned||high) && now-lastRelease>=8000) {
+    lastRelease=now;
+    releaseReplacementTextures(warned?"memory warning":"high usage");
+   }
+  }
  }
  static uint64_t nextReport=0,frames=0;++frames;
  if(now>=nextReport){std::fprintf(stderr,"[paperpad-boat] frame=%llu runtime_ms=%llu render=%ux%u controllers=%zu footprint_mb=%llu\n",frames,now,renderWidth.load(),renderHeight.load(),slots.connected_count(),(unsigned long long)footprintMB());nextReport=now+10000;}
