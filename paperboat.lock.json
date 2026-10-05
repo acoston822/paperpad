@@ -4,7 +4,7 @@
   "sources": {
     "vendor/paperboat": {
       "url": "https://github.com/acoston822/PaperBoat.git",
-      "commit": "8ef9040ccaf7d869b40b06026e1bb25b56ee9b6a"
+      "commit": "6ba166bd9740a21dcf577ea5e2e42e5f1ac7a020"
     },
     "vendor/paperboat/external/libultraship": {
       "url": "https://github.com/chrissotraidis/libultraship.git",
