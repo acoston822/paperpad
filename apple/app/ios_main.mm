@@ -469,6 +469,17 @@ int frameRateFromSettings(NSDictionary* settings) {
     CGContextRef context = UIGraphicsGetCurrentContext();
     if (context == nullptr) return;
 
+#ifdef PAPERPAD_APP
+    // PaperBoat can close its menu through controller navigation or the ImGui
+    // touch UI, so keep the native UIKit overlay synchronized with the engine.
+    const BOOL paperBoatMenuVisible = PaperPadBoat_IsMenuVisible() != 0;
+    if (paperBoatMenuVisible != _modalControlsHidden) {
+        _modalControlsHidden = paperBoatMenuVisible;
+        [self clearInput];
+    }
+    _utilityButton.hidden = paperBoatMenuVisible || _editing;
+#endif
+
     for (NSInteger index = 0; index < (NSInteger)kControlCount; ++index) {
         const TouchControl& control = _controls[index];
         if (!_editing && (!_gameplayControlsEnabled || _physicalControllerConnected ||
