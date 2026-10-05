@@ -179,6 +179,7 @@ NSInteger frameRateSegmentIndex(NSDictionary* settings) {
 #ifdef PAPERPAD_APP
 - (void)presentPaperBoatMenu;
 - (void)setPaperBoatMenuVisible:(BOOL)visible;
+- (void)syncPaperBoatMenuState;
 #endif
 @end
 
@@ -215,6 +216,10 @@ NSInteger frameRateSegmentIndex(NSDictionary* settings) {
     BOOL _gameplayControlsEnabled;
     BOOL _physicalControllerConnected;
     BOOL _modalControlsHidden;
+#ifdef PAPERPAD_APP
+    BOOL _engineMenuVisible;
+    NSTimer* _menuSyncTimer;
+#endif
     CGFloat _globalOpacity;
     UIButton* _utilityButton;
 }
@@ -242,6 +247,12 @@ NSInteger frameRateSegmentIndex(NSDictionary* settings) {
 #ifdef PAPERPAD_APP
         __unsafe_unretained PaperPadTouchOverlayView* owner = self;
         ((PaperPadMenuButton*)_utilityButton).visibilityChanged = nil;
+        // PaperBoat's ImGui menu closes without telling UIKit, and a hidden overlay
+        // receives no touches and no redraws, so poll the engine state to restore
+        // the touch controls when the menu is dismissed.
+        _menuSyncTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 repeats:YES block:^(NSTimer* timer) {
+            [owner syncPaperBoatMenuState];
+        }];
         [_utilityButton addTarget:self action:@selector(presentPaperBoatMenu)
                  forControlEvents:UIControlEventTouchUpInside];
         [_utilityButton setTitle:nil forState:UIControlStateNormal];
@@ -296,6 +307,9 @@ NSInteger frameRateSegmentIndex(NSDictionary* settings) {
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+#ifdef PAPERPAD_APP
+    [_menuSyncTimer invalidate];
+#endif
 #if !__has_feature(objc_arc)
     [super dealloc];
 #endif
@@ -485,12 +499,8 @@ NSInteger frameRateSegmentIndex(NSDictionary* settings) {
 #ifdef PAPERPAD_APP
     // PaperBoat can close its menu through controller navigation or the ImGui
     // touch UI, so keep the native UIKit overlay synchronized with the engine.
-    const BOOL paperBoatMenuVisible = PaperPadBoat_IsMenuVisible() != 0;
-    if (paperBoatMenuVisible != _modalControlsHidden) {
-        _modalControlsHidden = paperBoatMenuVisible;
-        [self clearInput];
-    }
-    _utilityButton.hidden = paperBoatMenuVisible || _editing;
+    [self syncPaperBoatMenuState];
+    _utilityButton.hidden = _modalControlsHidden || _editing;
 #endif
 
     for (NSInteger index = 0; index < (NSInteger)kControlCount; ++index) {
@@ -618,8 +628,18 @@ NSInteger frameRateSegmentIndex(NSDictionary* settings) {
 - (void)presentPaperBoatMenu {
     [self clearInput];
     PaperPadBoat_ToggleMenu();
+    [self syncPaperBoatMenuState];
+}
+// Acts only when the engine menu's visibility changes, so it never overrides
+// the hidden state held by other native modals.
+- (void)syncPaperBoatMenuState {
     const BOOL visible = PaperPadBoat_IsMenuVisible() != 0;
-    [self setPaperBoatMenuVisible:visible];
+    if (visible == _engineMenuVisible) return;
+    _engineMenuVisible = visible;
+    _modalControlsHidden = visible;
+    [self clearInput];
+    _utilityButton.hidden = visible || _editing;
+    [self setNeedsDisplay];
 }
 - (void)setPaperBoatMenuVisible:(BOOL)visible {
     _modalControlsHidden = visible;
