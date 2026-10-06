@@ -19,7 +19,7 @@ configure_file("${PAPERPAD_APP_ROOT}/apple/paperboat/Info.plist.in" "${CMAKE_BIN
 set_target_properties(${PROJECT_NAME} PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_BINARY_DIR}/PaperPadBoat.plist"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
-    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.chrissotraidis.paperpad.boat")
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.chrissotraidis.paperpad.boat.ramtest")
 target_link_libraries(${PROJECT_NAME} PRIVATE "-framework UIKit" "-framework UniformTypeIdentifiers")
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PAPERPAD_APP_ROOT}/apple/app/PrivacyInfo.xcprivacy" "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/PrivacyInfo.xcprivacy")

@@ -6,21 +6,21 @@
     <string>Icon</string>
     <key>CFBundleURLTypes</key>
     <array><dict>
-        <key>CFBundleURLName</key><string>paperpad-boat</string>
-        <key>CFBundleURLSchemes</key><array><string>paperpad-boat</string></array>
+        <key>CFBundleURLName</key><string>paperpad-boat-ram</string>
+        <key>CFBundleURLSchemes</key><array><string>paperpad-boat-ram</string></array>
     </dict></array>
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>PaperPad</string>
+    <string>PaperPad RAM</string>
     <key>CFBundleExecutable</key>
     <string>@EXECUTABLE_NAME@</string>
     <key>CFBundleIdentifier</key>
-    <string>com.chrissotraidis.paperpad.boat</string>
+    <string>com.chrissotraidis.paperpad.boat.ramtest</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>PaperPad</string>
+    <string>PaperPad RAM</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
