@@ -185,9 +185,23 @@ extern "C" void PaperPadBoat_Frame() {
    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil queue:nil usingBlock:^(NSNotification*){memoryWarning.store(true);}];}
   if(alternateAssets.load() && now>=nextCheck) {
    nextCheck=now+500;
-   constexpr uint64_t kFootprintLimitMB=1100,kAvailableFloorMB=1024;
+   // Scale to this device: iOS reports how much more the app may use before it is
+   // terminated (this already reflects the device's RAM and any raised limit), so the
+   // app's real ceiling is footprint + available. Release only when less than ~20% of
+   // that ceiling (never under 1 GB) is left, so a high-memory device keeps its packs
+   // loaded and a small one still gets protected.
    const bool warned=memoryWarning.exchange(false);
-   const bool high=footprintMB()>kFootprintLimitMB||availableMB()<kAvailableFloorMB;
+   const uint64_t footprint=footprintMB(),available=availableMB();
+   bool high=false;
+   if(available!=UINT64_MAX) {
+    const uint64_t ceiling=footprint+available;
+    high=available<std::max<uint64_t>(1024,ceiling/5);
+    static bool logged=false;
+    if(!logged){logged=true;std::fprintf(stderr,"[paperpad-boat] memory ceiling ~%llu MB, replacement textures release when available < %llu MB\n",(unsigned long long)ceiling,(unsigned long long)std::max<uint64_t>(1024,ceiling/5));}
+   } else {
+    // No headroom API: fall back to half of physical RAM.
+    high=footprint>[NSProcessInfo processInfo].physicalMemory/(2ull*1024ull*1024ull);
+   }
    if((warned||high) && now-lastRelease>=8000) {
     lastRelease=now;
     releaseReplacementTextures(warned?"memory warning":"high usage");
