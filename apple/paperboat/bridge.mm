@@ -42,7 +42,8 @@ uint64_t footprintMB() {
  if(task_info(mach_task_self(),TASK_VM_INFO,reinterpret_cast<task_info_t>(&info),&count)!=KERN_SUCCESS)return 0;
  return info.phys_footprint/(1024ull*1024ull);
 }
-// Memory the app may still use before iOS terminates it, in MB (for diagnostics).
+// Memory the app may still use before iOS terminates it, in MB.
+std::atomic<bool> memoryWarning{false};
 uint64_t availableMB() {
 #if __has_include(<os/proc.h>)
  return os_proc_available_memory()/(1024ull*1024ull);
@@ -168,8 +169,34 @@ extern "C" void PaperPadBoat_Frame() {
  if(auto interpreter=window->GetInterpreterWeak().lock()) {
   uint32_t w=0,h=0;interpreter->GetCurDimensions(&w,&h);renderWidth.store(w);renderHeight.store(h);
  }
+ {
+  // Texture-pack memory budget. The engine drops the least recently drawn replacement textures
+  // once the decoded ones exceed this budget, so the limit follows the device: iOS reports how
+  // much more the app may use before it is terminated (this reflects the device's RAM), so the
+  // app's real ceiling is footprint + available. The decoded copies cost roughly 2.3x their size
+  // once the GPU copies are counted, so a fifth of the ceiling keeps the total well inside it.
+  static uint64_t nextBudget=0;static bool observing=false,logged=false;
+  if(!observing){observing=true;
+   [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil queue:nil usingBlock:^(NSNotification*){memoryWarning.store(true);}];}
+  if(alternateAssets.load() && now>=nextBudget) {
+   nextBudget=now+500;
+   const uint64_t footprint=footprintMB(),available=availableMB();
+   const uint64_t held=gfx_replacement_bytes()>>20;
+   uint64_t budget=0;uint32_t minAge=1800; // frames a texture must sit unused before it can go
+   if(available!=UINT64_MAX) {
+    const uint64_t ceiling=footprint+available;
+    budget=std::max<uint64_t>(256,ceiling/5);
+    if(!logged){logged=true;std::fprintf(stderr,"[paperpad-boat] memory ceiling ~%llu MB, replacement texture budget %llu MB\n",(unsigned long long)ceiling,(unsigned long long)budget);}
+    if(available<std::max<uint64_t>(512,ceiling/10)) {budget=std::min<uint64_t>(budget,held*6/10);minAge=300;}
+   } else {
+    budget=std::max<uint64_t>(256,[NSProcessInfo processInfo].physicalMemory/(5ull*1024ull*1024ull));
+   }
+   if(memoryWarning.exchange(false)) {budget=std::min<uint64_t>(budget,held/2);minAge=120;}
+   gfx_set_replacement_budget(budget<<20,minAge);
+  }
+ }
  static uint64_t nextReport=0,frames=0;++frames;
- if(now>=nextReport){std::fprintf(stderr,"[paperpad-boat] frame=%llu runtime_ms=%llu render=%ux%u controllers=%zu footprint_mb=%llu available_mb=%llu\n",frames,now,renderWidth.load(),renderHeight.load(),slots.connected_count(),(unsigned long long)footprintMB(),(unsigned long long)availableMB());nextReport=now+10000;}
+ if(now>=nextReport){std::fprintf(stderr,"[paperpad-boat] frame=%llu runtime_ms=%llu render=%ux%u controllers=%zu footprint_mb=%llu available_mb=%llu replacement_mb=%llu\n",frames,now,renderWidth.load(),renderHeight.load(),slots.connected_count(),(unsigned long long)footprintMB(),(unsigned long long)availableMB(),(unsigned long long)(gfx_replacement_bytes()>>20));nextReport=now+10000;}
 }
 extern "C" void PaperPadBoat_ReadController(void* raw) {
  auto* pads=static_cast<OSContPad*>(raw);
