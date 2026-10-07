@@ -53,7 +53,7 @@ std::atomic<int32_t> g_touch_flick_x{0};
 std::atomic<int32_t> g_touch_flick_y{0};
 std::atomic<uint8_t> g_touch_flick_polls{0};
 
-constexpr uint8_t kTapHoldPolls = 6;
+constexpr uint8_t kTapHoldPolls = 2;
 // Preserve a very short released flick for one runtime poll. Replaying it for
 // several polls makes grid/name-entry selectors overshoot after the thumb has
 // already returned to neutral.
@@ -1080,7 +1080,7 @@ NSInteger frameRateSegmentIndex(NSDictionary* settings) {
         } else {
             // Preserve quick taps across several runtime polls without turning
             // a single shoulder tap into a long press.
-            g_touch_taps.extend(_controls[control].mask, kTapHoldPolls);
+            g_touch_taps.begin(_controls[control].mask, kTapHoldPolls);
         }
     }
     if (!_editing) [self publishInput];
@@ -1187,8 +1187,11 @@ extern "C" void PaperPad_SetPhysicalControllerConnected(int connected) {
 
 extern "C" void paperpad_touch_snapshot(uint16_t* buttons, float* x, float* y) {
     if (buttons != nullptr) {
-        *buttons = g_touch_buttons.load(std::memory_order_relaxed) |
-                   g_touch_taps.consume();
+        uint16_t releaseMask = 0;
+        const uint16_t latched = g_touch_taps.consume(&releaseMask);
+        // A button re-tapped while still latched reads as released for one poll so the game
+        // sees two separate presses instead of one long one.
+        *buttons = (g_touch_buttons.load(std::memory_order_relaxed) & ~releaseMask) | latched;
     }
     float touchX = g_touch_x.load(std::memory_order_relaxed) / 10000.0F;
     float touchY = g_touch_y.load(std::memory_order_relaxed) / 10000.0F;
