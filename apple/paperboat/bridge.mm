@@ -13,6 +13,7 @@
 #include <fast/interpreter.h>
 #include <atomic>
 #include <algorithm>
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <thread>
@@ -34,6 +35,10 @@ std::atomic<int> frameRate{0}; // 0 = engine default (Auto), otherwise a target 
 std::atomic<int> alternateAssets{0}; // 1 = load replacement (texture pack) assets from mods.
 std::atomic<int> sprintButton{0}; // 1 = hold R to move at double speed (engine enhancement).
 std::atomic<bool> settingsChanged{true}, active{true}, modal{false}, running{false};
+// A setting changed through the native UI after launch. The values applied at launch are only a
+// first-run seed: once the engine's own menu has stored a value, that stored value wins, so what
+// the player sets in PaperBoat's menu survives relaunching the app.
+std::atomic<bool> volumeExplicit{false}, alternateAssetsExplicit{false}, sprintExplicit{false}, frameRateExplicit{false};
 std::atomic<uint64_t> lastFrame{0};
 std::atomic<uint32_t> renderWidth{0}, renderHeight{0};
 // Memory the system charges to this app (what iOS uses when deciding to terminate it), in MB.
@@ -98,11 +103,11 @@ extern "C" int PaperPadBoat_IsMenuVisible() {
  auto menu=window->GetGui()->GetMenu();
  return menu && menu->IsVisible() ? 1 : 0;
 }
-extern "C" void PaperPad_SetAudioVolume(float v) {volume.store(std::clamp(v,0.f,1.f));settingsChanged.store(true);}
+extern "C" void PaperPad_SetAudioVolume(float v) {volume.store(std::clamp(v,0.f,1.f));if(running.load())volumeExplicit.store(true);settingsChanged.store(true);}
 extern "C" void PaperPad_SetGraphicsConfig(int r,int a,int) {resolution.store(std::clamp(r,0,4));aspect.store(a);settingsChanged.store(true);}
-extern "C" void PaperPad_SetFrameRate(int fps) {frameRate.store(fps<=0?0:std::clamp(fps,20,240));settingsChanged.store(true);}
-extern "C" void PaperPad_SetAlternateAssets(int on) {alternateAssets.store(on?1:0);settingsChanged.store(true);}
-extern "C" void PaperPad_SetSprintButton(int on) {sprintButton.store(on?1:0);settingsChanged.store(true);}
+extern "C" void PaperPad_SetFrameRate(int fps) {frameRate.store(fps<=0?0:std::clamp(fps,20,240));if(running.load())frameRateExplicit.store(true);settingsChanged.store(true);}
+extern "C" void PaperPad_SetAlternateAssets(int on) {alternateAssets.store(on?1:0);if(running.load())alternateAssetsExplicit.store(true);settingsChanged.store(true);}
+extern "C" void PaperPad_SetSprintButton(int on) {sprintButton.store(on?1:0);if(running.load())sprintExplicit.store(true);settingsChanged.store(true);}
 extern "C" int PaperPad_GetEffectiveRenderState(uint32_t* scale,uint32_t* w,uint32_t* h) {
  auto width=renderWidth.load(),height=renderHeight.load();
  if(scale)*scale=height*1000/240;if(w)*w=width;if(h)*h=height;
@@ -136,7 +141,13 @@ extern "C" void PaperPadBoat_Frame() {
  static int previousScale=0;
  if(chosenScale!=previousScale){previousScale=chosenScale;settingsChanged.store(true);}
  if(settingsChanged.exchange(false)) {
-  CVarSetInteger("gSettings.Volume.Master",std::lround(volume.load()*100));
+  // Write a value the engine already stores only when the player changed it natively just now;
+  // otherwise seed it once so a stored choice from PaperBoat's menu is not reset at launch.
+  const auto seed=[](const char* name,int value,std::atomic<bool>& explicitChange){
+   const bool force=explicitChange.exchange(false);
+   if(force || CVarGetInteger(name,INT32_MIN)==INT32_MIN)CVarSetInteger(name,value);
+  };
+  seed("gSettings.Volume.Master",std::lround(volume.load()*100),volumeExplicit);
   CVarSetInteger("gSettings.AdvancedResolution.Enabled",1);
   CVarSetFloat("gSettings.AdvancedResolution.AspectRatioX",aspect.load()==0?4.f:0.f);
   CVarSetFloat("gSettings.AdvancedResolution.AspectRatioY",aspect.load()==0?3.f:0.f);
@@ -145,8 +156,8 @@ extern "C" void PaperPadBoat_Frame() {
   CVarSetInteger("gSettings.AdvancedResolution.PixelPerfectMode",0);
   CVarSetInteger("gSettings.AdvancedResolution.VerticalPixelCount",240*chosenScale);
   CVarSetFloat("gSettings.InternalResolution",1.f);
-  CVarSetInteger("gEnhancements.Mods.AlternateAssets",alternateAssets.load());
-  CVarSetInteger("gEnhancements.SprintButton",sprintButton.load());
+  seed("gEnhancements.Mods.AlternateAssets",alternateAssets.load(),alternateAssetsExplicit);
+  seed("gEnhancements.SprintButton",sprintButton.load(),sprintExplicit);
   std::fprintf(stderr,"[paperpad-boat] settings volume=%.2f resolution=%d aspect=%d effective_scale=%d drawable=%dx%d alt_assets=%d sprint=%d\n",volume.load(),resolution.load(),aspect.load(),chosenScale,pixelWidth,pixelHeight,alternateAssets.load(),sprintButton.load());
  }
  auto window=std::dynamic_pointer_cast<Fast::Fast3dWindow>(Ship::Context::GetRawInstance()->GetWindow());
@@ -155,14 +166,24 @@ extern "C" void PaperPadBoat_Frame() {
   // restore the default when the setting returns to Auto.
   static int engineDefaultFps=0,appliedFps=0;
   if(engineDefaultFps==0)engineDefaultFps=window->GetTargetFps();
-  const int wanted=frameRate.load()>0?frameRate.load():engineDefaultFps;
+  // The saved native target is a first-run seed (used only when the engine has never stored a
+  // frame rate); after that the engine's own value stands unless it is changed natively.
+  static int nativeFps=-1;
+  if(nativeFps<0) {
+   const bool unset=CVarGetInteger("gSettings.InterpolationFPS",INT32_MIN)==INT32_MIN;
+   nativeFps=(unset||frameRateExplicit.load())?frameRate.load():0;
+   frameRateExplicit.store(false);
+  } else if(frameRateExplicit.exchange(false)) {
+   nativeFps=frameRate.load();
+  }
+  const int wanted=nativeFps>0?nativeFps:engineDefaultFps;
   if(wanted>0 && wanted!=appliedFps) {
-   if(frameRate.load()>0) {
+   if(nativeFps>0) {
     CVarSetInteger("gSettings.InterpolationFPS",wanted);
     CVarSetInteger("gSettings.MatchRefreshRate",0);
    }
    window->SetTargetFps(wanted);
-   std::fprintf(stderr,"[paperpad-boat] frame_rate target=%d (engine default=%d, setting=%d)\n",wanted,engineDefaultFps,frameRate.load());
+   std::fprintf(stderr,"[paperpad-boat] frame_rate target=%d (engine default=%d, native=%d)\n",wanted,engineDefaultFps,nativeFps);
    appliedFps=wanted;
   }
  }
