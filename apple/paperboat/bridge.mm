@@ -47,24 +47,6 @@ uint64_t footprintMB() {
  if(task_info(mach_task_self(),TASK_VM_INFO,reinterpret_cast<task_info_t>(&info),&count)!=KERN_SUCCESS)return 0;
  return info.phys_footprint/(1024ull*1024ull);
 }
-// Texture-pack memory. The engine keeps every decoded replacement texture for the life of
-// the process, so memory only climbs as new areas are visited. When the app gets close to
-// what iOS allows, drop the replacement textures and let the game reload what it still
-// needs. Original (non-pack) assets are never touched.
-std::atomic<bool> memoryWarning{false};
-uint64_t availableMB() {
-#if __has_include(<os/proc.h>)
- return os_proc_available_memory()/(1024ull*1024ull);
-#else
- return UINT64_MAX;
-#endif
-}
-void releaseReplacementTextures(const char* reason) {
- const uint64_t before=footprintMB();
- gfx_texture_cache_clear(); // GPU cache + the interpreter's references to resolved textures
- Ship::Context::GetRawInstance()->GetResourceManager()->UnloadResources("alt/*");
- std::fprintf(stderr,"[paperpad-boat] released replacement textures (%s): footprint %llu -> %llu MB, available %llu MB\n",reason,(unsigned long long)before,(unsigned long long)footprintMB(),(unsigned long long)availableMB());
-}
 class Backend final : public paperpad::input::ControllerBackend {
 public:
  std::vector<paperpad::input::EnumeratedController> enumerate() override {
@@ -198,36 +180,6 @@ extern "C" void PaperPadBoat_Frame() {
  }
  if(auto interpreter=window->GetInterpreterWeak().lock()) {
   uint32_t w=0,h=0;interpreter->GetCurDimensions(&w,&h);renderWidth.store(w);renderHeight.store(h);
- }
- {
-  // Check memory a couple of times a second; release at most every 8 seconds.
-  static uint64_t nextCheck=0,lastRelease=0;static bool observing=false;
-  if(!observing){observing=true;
-   [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil queue:nil usingBlock:^(NSNotification*){memoryWarning.store(true);}];}
-  if(alternateAssets.load() && now>=nextCheck) {
-   nextCheck=now+500;
-   // Scale to this device: iOS reports how much more the app may use before it is
-   // terminated (this already reflects the device's RAM and any raised limit), so the
-   // app's real ceiling is footprint + available. Release only when less than ~20% of
-   // that ceiling (never under 1 GB) is left, so a high-memory device keeps its packs
-   // loaded and a small one still gets protected.
-   const bool warned=memoryWarning.exchange(false);
-   const uint64_t footprint=footprintMB(),available=availableMB();
-   bool high=false;
-   if(available!=UINT64_MAX) {
-    const uint64_t ceiling=footprint+available;
-    high=available<std::max<uint64_t>(1024,ceiling/5);
-    static bool logged=false;
-    if(!logged){logged=true;std::fprintf(stderr,"[paperpad-boat] memory ceiling ~%llu MB, replacement textures release when available < %llu MB\n",(unsigned long long)ceiling,(unsigned long long)std::max<uint64_t>(1024,ceiling/5));}
-   } else {
-    // No headroom API: fall back to half of physical RAM.
-    high=footprint>[NSProcessInfo processInfo].physicalMemory/(2ull*1024ull*1024ull);
-   }
-   if((warned||high) && now-lastRelease>=8000) {
-    lastRelease=now;
-    releaseReplacementTextures(warned?"memory warning":"high usage");
-   }
-  }
  }
  static uint64_t nextReport=0,frames=0;++frames;
  if(now>=nextReport){std::fprintf(stderr,"[paperpad-boat] frame=%llu runtime_ms=%llu render=%ux%u controllers=%zu footprint_mb=%llu\n",frames,now,renderWidth.load(),renderHeight.load(),slots.connected_count(),(unsigned long long)footprintMB());nextReport=now+10000;}
